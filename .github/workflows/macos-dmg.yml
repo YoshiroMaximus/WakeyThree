@@ -1,0 +1,93 @@
+name: Build macOS DMG
+
+# Build a macOS .dmg whenever you push a version tag (e.g. v1.0.0),
+# and attach it to a GitHub Release. Also runnable manually.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create the Release and upload the DMG
+
+jobs:
+  build:
+    runs-on: macos-15   # provides recent Xcode toolchains
+    env:
+      SCHEME: WakeyThree
+      APP_NAME: WakeyThree
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26+
+        run: |
+          set -euo pipefail
+          echo "Installed Xcodes:"; ls -d /Applications/Xcode* || true
+          XC="$(ls -d /Applications/Xcode_26* 2>/dev/null | sort -V | tail -1)"
+          if [ -z "${XC:-}" ]; then
+            echo "::error::No Xcode 26 on this runner image. Bump runs-on (e.g. macos-26) or wait for the image to ship it."
+            exit 1
+          fi
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Build (Release, unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project WakeyThree.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Locate built .app
+        id: findapp
+        run: |
+          APP_PATH="build/Build/Products/Release/${APP_NAME}.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Could not find $APP_PATH"; find build -name "*.app"; exit 1
+          fi
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Ad-hoc sign the .app
+        # Self-sign so the bundle has a stable signature; this is NOT a
+        # Developer ID signature, so users still bypass Gatekeeper once.
+        run: codesign --force --deep --sign - "${{ steps.findapp.outputs.app_path }}"
+
+      - name: Create DMG
+        id: dmg
+        run: |
+          set -euo pipefail
+          STAGE="$(mktemp -d)"
+          cp -R "${{ steps.findapp.outputs.app_path }}" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          DMG="${APP_NAME}.dmg"
+          hdiutil create \
+            -volname "$APP_NAME" \
+            -srcfolder "$STAGE" \
+            -ov -format UDZO \
+            "$DMG"
+          echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
+
+      - name: Upload DMG as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-dmg
+          path: ${{ steps.dmg.outputs.dmg_path }}
+
+      - name: Attach DMG to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.dmg.outputs.dmg_path }}
+          body: |
+            Unsigned build. On first launch, right-click the app in
+            /Applications and choose **Open**, then confirm.

@@ -28,8 +28,12 @@ public struct WakeyDataStore: Sendable {
         ])
 
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+        let makeContainer = {
+            try ModelContainer(for: schema, migrationPlan: ServerMigrationPlan.self, configurations: [modelConfiguration])
+        }
+
         do {
-            return try ModelContainer(for: schema, migrationPlan: ServerMigrationPlan.self, configurations: [modelConfiguration])
+            return try makeContainer()
         } catch {
             // Log the FULL error — `error.localizedDescription` hides the real
             // CoreData/SwiftData reason behind a generic message.
@@ -39,15 +43,16 @@ public struct WakeyDataStore: Sendable {
             // aside so the app can still launch with a fresh store rather than
             // hard-crashing on every launch.
             archiveCorruptStore(at: modelConfiguration.url)
-            do {
-                return try ModelContainer(for: schema, migrationPlan: ServerMigrationPlan.self, configurations: [modelConfiguration])
-            } catch {
-                // Last resort: an in-memory store keeps the app usable this session.
-                Logger.shared.logError(message: "ModelContainer recovery failed, falling back to in-memory: \(error)")
-                let memoryConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                // swiftlint:disable:next force_try
-                return try! ModelContainer(for: schema, configurations: [memoryConfiguration])
-            }
+        }
+
+        do {
+            return try makeContainer()
+        } catch {
+            // Last resort: an in-memory store keeps the app usable this session.
+            Logger.shared.logError(message: "ModelContainer recovery failed, falling back to in-memory: \(error)")
+            let memoryConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            // swiftlint:disable:next force_try
+            return try! ModelContainer(for: schema, configurations: [memoryConfiguration])
         }
     }
 
@@ -55,11 +60,11 @@ public struct WakeyDataStore: Sendable {
     /// store can be created in its place. Best-effort; failures are logged.
     private static func archiveCorruptStore(at storeURL: URL) {
         let fm = FileManager.default
-        let suffix = ".corrupt-backup"
         for sidecar in ["", "-wal", "-shm"] {
-            let src = URL(fileURLWithPath: storeURL.path + sidecar)
-            guard fm.fileExists(atPath: src.path) else { continue }
-            let dst = URL(fileURLWithPath: src.path + suffix)
+            let srcPath = storeURL.path + sidecar
+            guard fm.fileExists(atPath: srcPath) else { continue }
+            let src = URL(fileURLWithPath: srcPath)
+            let dst = URL(fileURLWithPath: srcPath + ".corrupt-backup")
             try? fm.removeItem(at: dst)
             do {
                 try fm.moveItem(at: src, to: dst)

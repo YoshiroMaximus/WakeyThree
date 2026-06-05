@@ -28,6 +28,13 @@ struct EditView: View {
 
                 TextField("Hardware or MAC Address", text: $model.macAddress)
                     .autocorrectionDisabled(true)
+
+                TextField("Host or IP (optional)", text: $model.host)
+                    .autocorrectionDisabled(true)
+                    .help("Set to reach a server on another subnet via directed broadcast.")
+
+                TextField("Port", value: $model.port, format: .number.grouping(.never))
+                    .frame(maxWidth: 120)
             }
 
             // Inline validation hints, only shown once the user has typed something
@@ -37,6 +44,9 @@ struct EditView: View {
                 }
                 if model.showMacError {
                     Label("Invalid MAC address", systemImage: "exclamationmark.triangle.fill")
+                }
+                if model.showPortError {
+                    Label("Port must be between 1 and 65535", systemImage: "exclamationmark.triangle.fill")
                 }
             }
             .font(.callout)

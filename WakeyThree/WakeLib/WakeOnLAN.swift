@@ -28,8 +28,10 @@ public struct WakeOnLAN {
     @discardableResult
     public static func wakeServer(_ server: Server) async -> Result<Void, NetworkError> {
         let macAddress = server.macAddress
+        let host = server.host
+        let port = server.port
         do {
-            try await wake(macAddress: macAddress)
+            try await wake(macAddress: macAddress, host: host, port: port)
             server.lastUsed = Date.now
             return .success(())
         } catch let error as NetworkError {
@@ -125,7 +127,7 @@ public struct WakeOnLAN {
     // quickly, so transient failures are retried. The `Task.sleep` between
     // attempts suspends without blocking a thread.
     // https://developer.apple.com/forums/thread/765513
-    nonisolated static func wake(macAddress: String, maxAttempts: Int = 3) async throws {
+    nonisolated static func wake(macAddress: String, host: String? = nil, port: Int = 9, maxAttempts: Int = 3) async throws {
         var lastError: NetworkError = .socketFailue
 
         for attempt in 0..<maxAttempts {
@@ -135,7 +137,7 @@ public struct WakeOnLAN {
             }
 
             do {
-                try sendWakeOnLAN(macAddress: macAddress)
+                try sendWakeOnLAN(macAddress: macAddress, host: host, port: port)
                 return
             } catch let error as NetworkError {
                 lastError = error
@@ -146,7 +148,7 @@ public struct WakeOnLAN {
         throw lastError
     }
 
-    nonisolated static func sendWakeOnLAN(macAddress: String) throws {
+    nonisolated static func sendWakeOnLAN(macAddress: String, host: String? = nil, port: Int = 9) throws {
         let udpSocket = try self.setupSocket()
 
         // rebind sockaddr_in to sockaddr, then call bind
@@ -164,7 +166,7 @@ public struct WakeOnLAN {
         let packetSize = magicPacket.count
 
         // rebind sockaddr_in to sockaddr, then call sendto
-        var udpServer = self.setupUDPServer()
+        var udpServer = self.setupUDPServer(host: host, port: port)
         let sendStatus = withUnsafePointer(to: &udpServer) { sockAddressIn in
             sockAddressIn.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockAddress in
                 sendto(udpSocket, magicPacket, packetSize, 0, sockAddress, socklen_t(MemoryLayout<sockaddr_in>.stride))
@@ -225,12 +227,50 @@ public struct WakeOnLAN {
         return socketAddressIn
     }
 
-    nonisolated static func setupUDPServer() -> sockaddr_in {
+    /// Destination for the magic packet. With no host this is the limited
+    /// broadcast (255.255.255.255), which stays on the local subnet. With a host
+    /// it targets that host's /24 directed broadcast, which a suitably-configured
+    /// router can forward across subnets.
+    nonisolated static func setupUDPServer(host: String?, port: Int) -> sockaddr_in {
         var socketAddressIn = sockaddr_in()
         socketAddressIn.sin_family = UInt8(truncatingIfNeeded: AF_INET)
-        socketAddressIn.sin_addr.s_addr = INADDR_BROADCAST
-        socketAddressIn.sin_port = UInt16(truncatingIfNeeded: 9).bigEndian
+        socketAddressIn.sin_port = UInt16(truncatingIfNeeded: port).bigEndian
+
+        if let host, !host.isEmpty, let addr = resolveIPv4(host) {
+            socketAddressIn.sin_addr = directedBroadcast(of: addr)
+        } else {
+            socketAddressIn.sin_addr.s_addr = INADDR_BROADCAST
+        }
         return socketAddressIn
+    }
+
+    /// Resolves a hostname or dotted IPv4 string to an `in_addr`, or nil on failure.
+    nonisolated static func resolveIPv4(_ host: String) -> in_addr? {
+        var hints = addrinfo()
+        hints.ai_family = AF_INET
+        hints.ai_socktype = SOCK_DGRAM
+
+        var result: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, nil, &hints, &result) == 0, let result else {
+            return nil
+        }
+        defer { freeaddrinfo(result) }
+
+        var node: UnsafeMutablePointer<addrinfo>? = result
+        while let current = node {
+            if current.pointee.ai_family == AF_INET, let sa = current.pointee.ai_addr {
+                return sa.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
+            }
+            node = current.pointee.ai_next
+        }
+        return nil
+    }
+
+    /// The /24 directed-broadcast address for an IPv4 address (last octet → 255).
+    nonisolated static func directedBroadcast(of addr: in_addr) -> in_addr {
+        var raw = addr.s_addr // network byte order: memory is [a][b][c][d]
+        withUnsafeMutableBytes(of: &raw) { $0[3] = 0xFF }
+        return in_addr(s_addr: raw)
     }
 
     /// Builds the 102-byte magic packet: 6 bytes of 0xFF followed by the MAC repeated 16 times.

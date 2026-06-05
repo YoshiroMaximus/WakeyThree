@@ -32,12 +32,32 @@ struct PhoneEditView: View {
                 }
 
                 Section {
+                    TextField("Host or IP (optional)", text: $model.host)
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
+                        #if os(iOS)
+                        .keyboardType(.URL)
+                        #endif
+
+                    TextField("Port", value: $model.port, format: .number.grouping(.never))
+                        #if os(iOS)
+                        .keyboardType(.numberPad)
+                        #endif
+                } footer: {
+                    Text("Set a host or IP to reach a server on another subnet via directed broadcast. Port defaults to 9.")
+                }
+
+                Section {
                     if model.showNameError {
                         Text("Name cannot be empty")
                             .foregroundStyle(.red)
                     }
                     if model.showMacError {
                         Text("Invalid MAC Address")
+                            .foregroundStyle(.red)
+                    }
+                    if model.showPortError {
+                        Text("Port must be between 1 and 65535")
                             .foregroundStyle(.red)
                     }
                 }

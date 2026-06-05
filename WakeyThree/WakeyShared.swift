@@ -33,34 +33,46 @@ final class ServerEditorModel {
     let server: Server?
     var name: String
     var macAddress: String
+    var host: String
+    var port: Int
 
     init(server: Server?) {
         self.server = server
         self.name = server?.name ?? ""
         self.macAddress = server?.macAddress ?? ""
+        self.host = server?.host ?? ""
+        self.port = server?.port ?? 9
     }
 
     var title: String { server == nil ? "Add Server" : "Edit Server" }
 
+    var portIsValid: Bool { (1...65535).contains(port) }
+
     var canSave: Bool {
-        WakeOnLAN.validate(name: name) && WakeOnLAN.validate(macAddress: macAddress)
+        WakeOnLAN.validate(name: name) && WakeOnLAN.validate(macAddress: macAddress) && portIsValid
     }
 
     var showNameError: Bool { !name.isEmpty && !WakeOnLAN.validate(name: name) }
     var showMacError: Bool { !macAddress.isEmpty && !WakeOnLAN.validate(macAddress: macAddress) }
+    var showPortError: Bool { !portIsValid }
 
     /// Updates the existing server in place, or inserts a new one.
     func save(into context: ModelContext) {
-        guard WakeOnLAN.validate(name: name), WakeOnLAN.validate(macAddress: macAddress) else {
+        guard WakeOnLAN.validate(name: name), WakeOnLAN.validate(macAddress: macAddress), portIsValid else {
             Logger.shared.logWarning(message: "Invalid server, ignoring")
             return
         }
 
+        let trimmedHost = host.trimmingCharacters(in: .whitespaces)
+        let resolvedHost = trimmedHost.isEmpty ? nil : trimmedHost
+
         if let server {
             server.name = name
             server.macAddress = macAddress
+            server.host = resolvedHost
+            server.port = port
         } else {
-            context.insert(Server(macAddress: macAddress, name: name))
+            context.insert(Server(macAddress: macAddress, name: name, host: resolvedHost, port: port))
         }
 
         try? context.save()

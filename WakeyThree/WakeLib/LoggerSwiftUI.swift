@@ -21,7 +21,7 @@ public final class LoggerSwiftUI: LogDestination {
     @ObservationIgnored private var textLines: [String] = []
 
     public init() {
-        Logger.shared.destination = self
+        Logger.shared.setDestination(destination: self)
         Logger.shared.playbackBuffer()
     }
 

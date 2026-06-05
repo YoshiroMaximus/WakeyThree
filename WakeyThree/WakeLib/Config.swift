@@ -14,14 +14,16 @@ import Foundation
  *
  * Workaround using a DTO with all optional fields. Another option is to implement your own Decodable methods.
  */
-struct ConfigDTO: Codable, Equatable {
+nonisolated struct ConfigDTO: Codable, Equatable {
     let version: String
     var logLevel: LogLevel?
 }
 
 // JSON config file to control behavior of this library
 // Helpful when supporting platforms such as React Native, Unity or handling early lifecycle events
-public struct Config: Equatable {
+// nonisolated: a pure value type read at Logger init (off the main actor), so it
+// must not inherit the module's default main-actor isolation.
+nonisolated public struct Config: Equatable {
 
     public let version: String
     public var logLevel: LogLevel = .debug

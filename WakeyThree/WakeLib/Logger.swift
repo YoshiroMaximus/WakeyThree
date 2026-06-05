@@ -14,12 +14,12 @@ public enum LogLevel: Int, Codable {
     case error
 }
 
-public protocol LogDestination {
+public protocol LogDestination: Sendable {
     func handle(message: String)
 }
 
 // by default, messages are just printed to standard out
-struct DefaultDestination: LogDestination {
+nonisolated struct DefaultDestination: LogDestination {
     func handle(message: String) {
         print(message)
     }
@@ -27,14 +27,18 @@ struct DefaultDestination: LogDestination {
 
 /// Many apps have their own existing logging system.
 /// This SDK logger allows redirecting log messages to whatever system the App dev chooses.
-public class Logger: NSObject {
+///
+/// Thread-safe by design: every access to mutable state goes through `queue`, so
+/// this is `nonisolated` (callable from any thread/actor) rather than inheriting
+/// the module's default main-actor isolation. The queue justifies @unchecked Sendable.
+nonisolated public final class Logger: NSObject, @unchecked Sendable {
 
     // This is using an internal isolation queue.
     public static let shared: Logger = Logger()
 
-    var currentLogLevel = Config.defaultConfig().logLevel
-    var destination : LogDestination = DefaultDestination()
-    var queue = DispatchQueue(label: "com.ieesizaq.echologqueue")
+    private var currentLogLevel = Config.defaultConfig().logLevel
+    private var destination: LogDestination = DefaultDestination()
+    private let queue = DispatchQueue(label: "com.ieesizaq.echologqueue")
 
     public func setDestination(destination: LogDestination) {
         self.queue.sync {

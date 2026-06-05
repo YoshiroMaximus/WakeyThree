@@ -1,29 +1,35 @@
 # WakeyThree
 
-A simple, minimalist [Wake-on-LAN](https://en.wikipedia.org/wiki/Wake-on-LAN) utility for Apple platforms. WakeyThree wakes computers on your local network by broadcasting a UDP "magic packet" to a saved MAC address.
+Wake your servers with one click.
 
-- **macOS** — lives in the menu bar; click a server to wake it.
-- **iOS / iPadOS / visionOS** — tap a server to wake it.
+WakeyThree is a lightweight Wake-on-LAN app for Apple platforms. Save a server's MAC address once, then wake it whenever you need it.
 
-WakeyThree is a multiplatform SwiftUI rewrite of [WakeyToo](https://ieesizaq.com/wakeytoo/), targeting modern OS releases.
+- macOS: Menu bar app
+- iPhone, iPad, Vision Pro: Tap to wake
+
+Built as a modern SwiftUI successor to WakeyToo.
 
 ## Features
 
-- Add, **edit**, and remove servers (name + MAC address)
-- Wake a server with a single click/tap
-- Most-recently-used servers float to the top
-- Built-in log viewer for troubleshooting failed wakes
-- Servers persist locally via SwiftData
+- Save servers by name and MAC address
+- Edit or remove servers anytime
+- One-click wake
+- Recent servers stay at the top
+- Built-in logs for troubleshooting
+- SwiftData-backed local storage
 
 ## Requirements
 
 - Xcode 26+
-- macOS 26 / iOS 26 / visionOS 26 (deployment target 26.5)
-- The target computer must support Wake-on-LAN and have it enabled
-- Both devices must be on the **same local network**, and you must know the target's MAC address
+- macOS 26 / iOS 26 / visionOS 26
+- Wake-on-LAN enabled on the target machine
+- Both devices on the same local network
+- The target machine's MAC address
 
-See the original end-user docs (including per-platform setup guides for macOS, Windows, and Linux) at <https://ieesizaq.com/wakeytoo/>.
+For setup guides and more information about Wake-on-LAN, see the original WakeyToo documentation:
 
-## Credits & license
+https://ieesizaq.com/wakeytoo/
 
-Based on **WakeyToo** by [echo / ieesizaq](https://ieesizaq.com/wakeytoo/), whose [open-source repo](https://github.com/) is licensed under **GPL-3.0**. As a derivative work, WakeyThree is likewise distributed under the GPL-3.0.
+## Credits
+
+Forked from WakeyToo by echo / ieesizaq. The original project is licensed under GPL-3.0, and WakeyThree is distributed under the same license.

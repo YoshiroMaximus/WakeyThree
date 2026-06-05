@@ -57,7 +57,7 @@ struct PhoneEditView: View {
                             .foregroundStyle(.red)
                     }
                     if model.showPortError {
-                        Text("Port must be between 1 and 65535")
+                        Text(ServerEditorModel.portErrorMessage)
                             .foregroundStyle(.red)
                     }
                 }

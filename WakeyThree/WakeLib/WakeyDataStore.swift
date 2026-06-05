@@ -114,6 +114,17 @@ public struct WakeyDataStore: Sendable {
         return try context.fetch(descriptor).first
     }
 
+    // for app intents — resolves many entity identifiers in a single fetch
+    public func fetchServers(ids: [UUID]) throws -> [Server] {
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<Server>(
+            predicate: #Predicate<Server> { server in
+                ids.contains(server.appEntityID)
+            }
+        )
+        return try context.fetch(descriptor)
+    }
+
     // for quick actions
     public func fetchRecentServers() throws -> [Server] {
         let context = ModelContext(container)

@@ -20,6 +20,7 @@ struct PhoneView: View {
     @State private var editorRoute: ServerEditorRoute?
     @State private var showingLog = false
     @State private var toast: WakeMessage?
+    @State private var toastGeneration = 0
 
     var body: some View {
         NavigationStack {
@@ -116,9 +117,11 @@ struct PhoneView: View {
         UINotificationFeedbackGenerator().notificationOccurred(message.isSuccess ? .success : .error)
         #endif
 
+        toastGeneration += 1
+        let generation = toastGeneration
         withAnimation { toast = message }
         try? await Task.sleep(for: .seconds(message.isSuccess ? 2 : 4))
-        withAnimation { if toast?.title == message.title { toast = nil } }
+        withAnimation { if toastGeneration == generation { toast = nil } }
     }
 }
 

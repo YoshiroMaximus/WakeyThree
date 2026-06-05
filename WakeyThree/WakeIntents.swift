@@ -38,9 +38,8 @@ struct ServerEntity: AppEntity {
 struct ServerEntityQuery: EntityQuery {
     @MainActor
     func entities(for identifiers: [UUID]) async throws -> [ServerEntity] {
-        identifiers.compactMap { id in
-            (try? WakeyDataStore.shared.fetchServer(id: id)).flatMap { $0 }.map(ServerEntity.init)
-        }
+        let servers = (try? WakeyDataStore.shared.fetchServers(ids: identifiers)) ?? []
+        return servers.map(ServerEntity.init)
     }
 
     @MainActor

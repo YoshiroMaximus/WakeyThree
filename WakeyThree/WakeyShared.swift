@@ -56,6 +56,8 @@ final class ServerEditorModel {
     var showMacError: Bool { !macAddress.isEmpty && !WakeOnLAN.validate(macAddress: macAddress) }
     var showPortError: Bool { !portIsValid }
 
+    static let portErrorMessage = "Port must be between 1 and 65535"
+
     /// Updates the existing server in place, or inserts a new one.
     func save(into context: ModelContext) {
         guard WakeOnLAN.validate(name: name), WakeOnLAN.validate(macAddress: macAddress), portIsValid else {

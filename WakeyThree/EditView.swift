@@ -46,7 +46,7 @@ struct EditView: View {
                     Label("Invalid MAC address", systemImage: "exclamationmark.triangle.fill")
                 }
                 if model.showPortError {
-                    Label("Port must be between 1 and 65535", systemImage: "exclamationmark.triangle.fill")
+                    Label(ServerEditorModel.portErrorMessage, systemImage: "exclamationmark.triangle.fill")
                 }
             }
             .font(.callout)

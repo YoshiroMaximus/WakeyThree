@@ -31,7 +31,42 @@ public struct WakeyDataStore: Sendable {
         do {
             return try ModelContainer(for: schema, migrationPlan: ServerMigrationPlan.self, configurations: [modelConfiguration])
         } catch {
-            fatalError(error.localizedDescription)
+            // Log the FULL error — `error.localizedDescription` hides the real
+            // CoreData/SwiftData reason behind a generic message.
+            Logger.shared.logError(message: "ModelContainer init failed: \(error)")
+
+            // Most likely an unreadable or unmigratable store on disk. Move it
+            // aside so the app can still launch with a fresh store rather than
+            // hard-crashing on every launch.
+            archiveCorruptStore(at: modelConfiguration.url)
+            do {
+                return try ModelContainer(for: schema, migrationPlan: ServerMigrationPlan.self, configurations: [modelConfiguration])
+            } catch {
+                // Last resort: an in-memory store keeps the app usable this session.
+                Logger.shared.logError(message: "ModelContainer recovery failed, falling back to in-memory: \(error)")
+                let memoryConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                // swiftlint:disable:next force_try
+                return try! ModelContainer(for: schema, configurations: [memoryConfiguration])
+            }
+        }
+    }
+
+    /// Moves a failed store (and its -wal/-shm sidecar files) aside so a clean
+    /// store can be created in its place. Best-effort; failures are logged.
+    private static func archiveCorruptStore(at storeURL: URL) {
+        let fm = FileManager.default
+        let suffix = ".corrupt-backup"
+        for sidecar in ["", "-wal", "-shm"] {
+            let src = URL(fileURLWithPath: storeURL.path + sidecar)
+            guard fm.fileExists(atPath: src.path) else { continue }
+            let dst = URL(fileURLWithPath: src.path + suffix)
+            try? fm.removeItem(at: dst)
+            do {
+                try fm.moveItem(at: src, to: dst)
+                Logger.shared.logWarning(message: "Archived unreadable store: \(src.lastPathComponent) -> \(dst.lastPathComponent)")
+            } catch {
+                Logger.shared.logError(message: "Could not archive store file \(src.lastPathComponent): \(error)")
+            }
         }
     }
 

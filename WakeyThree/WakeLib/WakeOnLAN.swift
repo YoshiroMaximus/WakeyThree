@@ -20,31 +20,45 @@ public enum NetworkError: Error {
 
 public struct WakeOnLAN {
 
-    // Wake on LAN is a fire and forget API, this just makes sure to update the last used timestamp
-    public static func wakeServer(_ server: Server) {
-        let address = server.macAddress
-        DispatchQueue.global().async {
-            WakeOnLAN.sendWakeOnLAN(macAddress: address, maxAttempts: 3)
-        }
-        server.lastUsed = Date.now
-    }
-
-    // quick actions helper method
-    public static func wakeServerByName(_ name: String) {
+    /// Wakes a server and, on success, bumps its `lastUsed` timestamp so it
+    /// floats to the top of the most-recently-used list. A failed wake leaves
+    /// the ordering untouched. Runs on the main actor so it can safely mutate
+    /// the SwiftData model; the blocking socket work hops off-main inside `wake`.
+    @MainActor
+    @discardableResult
+    public static func wakeServer(_ server: Server) async -> Result<Void, NetworkError> {
+        let macAddress = server.macAddress
         do {
-            if let server = try WakeyDataStore.shared.fetchServer(name: name) {
-                WakeOnLAN.wakeServer(server)
-            } else {
-                Logger.shared.logWarning(message: "Failed to find server with name: \(name)")
-            }
-        } catch { }
+            try await wake(macAddress: macAddress)
+            server.lastUsed = Date.now
+            return .success(())
+        } catch let error as NetworkError {
+            return .failure(error)
+        } catch {
+            return .failure(.socketFailue)
+        }
     }
 
-    public static func validate(name: String) -> Bool {
+    // quick actions / App Intents helper
+    @MainActor
+    @discardableResult
+    public static func wakeServerByName(_ name: String) async -> Result<Void, NetworkError> {
+        do {
+            guard let server = try WakeyDataStore.shared.fetchServer(name: name) else {
+                Logger.shared.logWarning(message: "Failed to find server with name: \(name)")
+                return .failure(.socketFailue)
+            }
+            return await wakeServer(server)
+        } catch {
+            return .failure(.socketFailue)
+        }
+    }
+
+    nonisolated public static func validate(name: String) -> Bool {
         return (name.count > 0)
     }
 
-    public static func validate(macAddress: String) -> Bool {
+    nonisolated public static func validate(macAddress: String) -> Bool {
         guard macAddress.count == 17 || (macAddress.count == 12 && !containsSeparators(macAddress)) else {
             return false
         }
@@ -69,12 +83,12 @@ public struct WakeOnLAN {
         return false
     }
 
-    static func containsSeparators(_ string: String) -> Bool {
+    nonisolated static func containsSeparators(_ string: String) -> Bool {
         return string.contains("-") || string.contains(":")
     }
 
     /// Adds separators to strings that lack them, improves usability
-    static func sanitizeMacAddress(_ string: String) -> String {
+    nonisolated static func sanitizeMacAddress(_ string: String) -> String {
         if string.count == 17 {
             return string
         }
@@ -90,70 +104,49 @@ public struct WakeOnLAN {
         return sanitized
     }
 
-    /// Converts a mac address hex string to a UInt8 buffer. Assumes hexString is properly formatted with separators!
-    /// Similar to C's sscanf
-    static func readMacAddressFrom(hexString: String) throws -> [UInt8] {
-
-        // Copy hexString into [UInt64]
+    /// Parses a MAC address hex string into 6 bytes. Assumes separators (":"/"-") between octets.
+    nonisolated static func readMacAddressFrom(hexString: String) throws -> [UInt8] {
         let scanner = Scanner(string: hexString)
-        scanner.caseSensitive = false
         scanner.charactersToBeSkipped = CharacterSet(charactersIn: ":-")
 
-        let macAddressSize = 6
-        let macAddress = UnsafeMutablePointer<UInt64>.allocate(capacity: macAddressSize)
-        defer {
-            macAddress.deallocate()
-        }
-
-        for i in 0...5 {
-            let offsetPointer = macAddress + i
-            let status = scanner.scanHexInt64(offsetPointer)
-
-            if (!status) {
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(6)
+        for _ in 0..<6 {
+            var octet: UInt64 = 0
+            guard scanner.scanHexInt64(&octet) else {
                 throw NetworkError.invalidMacAddress
             }
+            bytes.append(UInt8(truncatingIfNeeded: octet))
         }
-
-        // Copy from [UInt64] to [UInt8]
-        let uInt64Array = Array(UnsafeBufferPointer(start:macAddress, count:macAddressSize))
-        let uInt8Array: [UInt8] = uInt64Array.map { uInt64 in
-            UInt8(truncatingIfNeeded: uInt64)
-        }
-
-        return uInt8Array
+        return bytes
     }
 
-    // macOS Sequoia's Local network permission handler does not initialize very quickly, I need to retry errors
-    // This method blocks the thread! Only call from a background threads and treat as fire and forget!
+    // macOS Sequoia's Local Network permission handler does not initialize very
+    // quickly, so transient failures are retried. The `Task.sleep` between
+    // attempts suspends without blocking a thread.
     // https://developer.apple.com/forums/thread/765513
-    // TODO: migrate this to Swift Concurrency?
-    static func sendWakeOnLAN(macAddress: String, maxAttempts: Int) {
-        var success = false
-        var attemptCount = 0
+    nonisolated static func wake(macAddress: String, maxAttempts: Int = 3) async throws {
+        var lastError: NetworkError = .socketFailue
 
-        while attemptCount < maxAttempts, !success {
-
-            // only sleep if this isn't the first attempt
-            if attemptCount > 0 {
+        for attempt in 0..<maxAttempts {
+            if attempt > 0 {
                 Logger.shared.logWarning(message: "Will retry in 2 seconds")
-                Thread.sleep(forTimeInterval: 2)
+                try? await Task.sleep(for: .seconds(2))
             }
 
-            // attempt wake on lan
             do {
                 try sendWakeOnLAN(macAddress: macAddress)
-                success = true
-            } catch {
-                attemptCount += 1
+                return
+            } catch let error as NetworkError {
+                lastError = error
             }
         }
 
-        if !success {
-            Logger.shared.logError(message: "Failed to send magic packet to \(macAddress) after \(maxAttempts) attempts.")
-        }
+        Logger.shared.logError(message: "Failed to send magic packet to \(macAddress) after \(maxAttempts) attempts.")
+        throw lastError
     }
 
-    static func sendWakeOnLAN(macAddress: String) throws {
+    nonisolated static func sendWakeOnLAN(macAddress: String) throws {
         let udpSocket = try self.setupSocket()
 
         // rebind sockaddr_in to sockaddr, then call bind
@@ -178,56 +171,45 @@ public struct WakeOnLAN {
             }
         }
 
-        if sendStatus == 102 {
-            Logger.shared.logVerbose(message: "Wake \(macAddress) at \(Date.now.formatted(date: .omitted, time: .standard)). status: OK")
-        } else {
-            Logger.shared.logVerbose(message: "Wake \(macAddress) at \(Date.now.formatted(date: .omitted, time: .standard)). status: \(sendStatus) errno:\(errno)")
-        }
-
+        let timestamp = Date.now.formatted(date: .omitted, time: .standard)
         guard sendStatus != -1 else {
-            if errno == 65 {
-                // 65 no route to host.
-                // The app probably does NOT have multicasting entitlement, which is required on iOS.
-                Logger.shared.logVerbose(message: "No route to host. Have you granted network permission?")
+            // errno is global and may be clobbered by a later syscall, so capture it now.
+            // https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161031/028627.html
+            let code = errno
+            Logger.shared.logVerbose(message: "Wake \(macAddress) at \(timestamp). status: failed errno:\(code)")
+            switch code {
+            case EHOSTUNREACH:
+                // No route to host. On iOS this usually means Local Network permission is missing.
+                Logger.shared.logVerbose(message: "No route to host. Have you granted Local Network permission?")
                 throw NetworkError.noRouteToHost
-            } else if errno == 51 {
-                // 51 network unreachable
-                // The app has no active network connection.
-                Logger.shared.logVerbose(message: "Nework Unreachable. Are you offline?")
+            case ENETUNREACH:
+                Logger.shared.logVerbose(message: "Network unreachable. Are you offline?")
                 throw NetworkError.networkUnreachable
-            } else if errno == 49 {
-                // 49 can't assign requested address.
+            case EADDRNOTAVAIL:
                 Logger.shared.logVerbose(message: "Can't assign requested address. Are you on cellular only?")
                 throw NetworkError.cannotAssignRequestedAddress
-            } else if errno == 2 {
-                // 2 no such file or directory
-                // macOS 15+ will report this until network permission is granted
-                Logger.shared.logVerbose(message: "No such file or directory. Have you granted network permission?")
+            case ENOENT:
+                // macOS 15+ reports this until Local Network permission is granted.
+                Logger.shared.logVerbose(message: "No such file or directory. Have you granted Local Network permission?")
                 throw NetworkError.noSuchFileOrDirectory
-            } else {
-                // errno is global, so there's a chance it was overwritten by a different system call failure
-                // https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20161031/028627.html
-                Logger.shared.logVerbose(message: "Unexpected errno: \(errno). There is a known issue with Swift and errno, so this could be misleading.")
+            default:
+                Logger.shared.logVerbose(message: "Unexpected errno: \(code).")
                 throw NetworkError.socketFailue
             }
         }
+
+        Logger.shared.logVerbose(message: "Wake \(macAddress) at \(timestamp). status: OK")
     }
 
-    static func setupSocket() throws -> Int32 {
+    nonisolated static func setupSocket() throws -> Int32 {
         let udpSocket = socket(AF_INET, SOCK_DGRAM, 0)
         guard udpSocket != -1 else {
             throw NetworkError.socketFailue
         }
 
-        // In C it's just "int broadcast = 1;"
-        let broadcast = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-        defer {
-            broadcast.deallocate()
-        }
-        broadcast.pointee = 1
-
         // SO_BROADCAST works on both IPv4 and IPv6
-        let broadcastSetupStatus = setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, broadcast, socklen_t(MemoryLayout<Int32>.size))
+        var broadcast: Int32 = 1
+        let broadcastSetupStatus = setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, &broadcast, socklen_t(MemoryLayout<Int32>.size))
         guard broadcastSetupStatus != -1 else {
             throw NetworkError.socketFailue
         }
@@ -235,7 +217,7 @@ public struct WakeOnLAN {
         return udpSocket
     }
 
-    static func setupUDPClient() -> sockaddr_in {
+    nonisolated static func setupUDPClient() -> sockaddr_in {
         var socketAddressIn = sockaddr_in()
         socketAddressIn.sin_family = UInt8(truncatingIfNeeded: AF_INET)
         socketAddressIn.sin_addr.s_addr = INADDR_ANY
@@ -243,7 +225,7 @@ public struct WakeOnLAN {
         return socketAddressIn
     }
 
-    static func setupUDPServer() -> sockaddr_in {
+    nonisolated static func setupUDPServer() -> sockaddr_in {
         var socketAddressIn = sockaddr_in()
         socketAddressIn.sin_family = UInt8(truncatingIfNeeded: AF_INET)
         socketAddressIn.sin_addr.s_addr = INADDR_BROADCAST
@@ -251,32 +233,15 @@ public struct WakeOnLAN {
         return socketAddressIn
     }
 
-    // create magic packet for wake on lan
-    static func createMagicPackageFor(macAddress: String) throws -> [UInt8] {
-        let macAddress: [UInt8] = try self.readMacAddressFrom(hexString: sanitizeMacAddress(macAddress))
-        let magicPacketSize = 102
-        let magicPacket = UnsafeMutablePointer<UInt8>.allocate(capacity: magicPacketSize)
-        defer {
-            magicPacket.deallocate()
-        }
+    /// Builds the 102-byte magic packet: 6 bytes of 0xFF followed by the MAC repeated 16 times.
+    nonisolated static func createMagicPackageFor(macAddress: String) throws -> [UInt8] {
+        let mac = try readMacAddressFrom(hexString: sanitizeMacAddress(macAddress))
+        guard mac.count == 6 else { throw NetworkError.invalidMacAddress }
 
-        // 6 copies of 0xFF
-        for i in 0...5 {
-            let offsetPointer = magicPacket + i
-            offsetPointer.pointee = UInt8(truncatingIfNeeded: 0xFF)
+        var packet = [UInt8](repeating: 0xFF, count: 6)
+        for _ in 0..<16 {
+            packet.append(contentsOf: mac)
         }
-
-        // 16 copies of the mac address
-        let macAddressStart = magicPacket + 6
-        for i in 0...15 {
-            for j in 0...5 {
-                let offsetPointer = macAddressStart + (i * 6) + j
-                offsetPointer.pointee = macAddress[j]
-            }
-        }
-
-        // I believe this does NOT copy the actual buffer, but should probably confirm
-        let uInt8Array = Array(UnsafeBufferPointer(start:magicPacket, count:magicPacketSize))
-        return uInt8Array
+        return packet
     }
 }

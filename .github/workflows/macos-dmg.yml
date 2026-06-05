@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write   # needed to create the Release and upload the DMG
 
+# Run JS-based actions on Node.js 24 (Node 20 is deprecated; removed Sept 16, 2026).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: macos-15   # provides recent Xcode toolchains
@@ -20,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode 26+
         run: |
@@ -78,7 +82,7 @@ jobs:
           echo "dmg_path=$DMG" >> "$GITHUB_OUTPUT"
 
       - name: Upload DMG as build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.APP_NAME }}-dmg
           path: ${{ steps.dmg.outputs.dmg_path }}

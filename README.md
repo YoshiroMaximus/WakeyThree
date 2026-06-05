@@ -1,25 +1,29 @@
-# WakeyToo
-A Wake-on-LAN utilty for Apple platforms.
+# WakeyThree
 
-iOS, tvOS and macOS versions are available on the Apple App Store. 
-End user docs are available at https://ieesizaq.com/wakeytoo/
+A simple, minimalist [Wake-on-LAN](https://en.wikipedia.org/wiki/Wake-on-LAN) utility for Apple platforms. WakeyThree wakes computers on your local network by broadcasting a UDP "magic packet" to a saved MAC address.
 
-This is the open source repo for developers who are interested in contributing or building it themselves.
+- **macOS** — lives in the menu bar; click a server to wake it.
+- **iOS / iPadOS / visionOS** — tap a server to wake it.
 
-## Developer Guide
-I wrote WakeyToo to practice Swift and meet my own need for a Wake-on-LAN utility.
+WakeyThree is a multiplatform SwiftUI rewrite of [WakeyToo](https://ieesizaq.com/wakeytoo/), targeting modern OS releases.
 
-You will need to request a multicast entitlement to do UDP broadcasts. Remember to change the bundle ids!
-https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.networking.multicast
+## Features
 
-Version 1.1.0 and before were built from my private monorepo, which contains a lot of unrelated code. 
-Future releases will be built from this repo.
+- Add, **edit**, and remove servers (name + MAC address)
+- Wake a server with a single click/tap
+- Most-recently-used servers float to the top
+- Built-in log viewer for troubleshooting failed wakes
+- Servers persist locally via SwiftData
 
-### WakeyLib
-A swift package that contains core functionality.
+## Requirements
 
-### Apps
-Wakey, is the iOS, iPad and tvOS app.
-WakeyToo, is the macOS app.
+- Xcode 26+
+- macOS 26 / iOS 26 / visionOS 26 (deployment target 26.5)
+- The target computer must support Wake-on-LAN and have it enabled
+- Both devices must be on the **same local network**, and you must know the target's MAC address
 
-On the App Store, all binaries are bundled together and branded as WakeyToo.
+See the original end-user docs (including per-platform setup guides for macOS, Windows, and Linux) at <https://ieesizaq.com/wakeytoo/>.
+
+## Credits & license
+
+Based on **WakeyToo** by [echo / ieesizaq](https://ieesizaq.com/wakeytoo/), whose [open-source repo](https://github.com/) is licensed under **GPL-3.0**. As a derivative work, WakeyThree is likewise distributed under the GPL-3.0.

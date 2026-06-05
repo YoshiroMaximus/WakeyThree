@@ -19,6 +19,18 @@ struct WakeyThreeApp: App {
                 .modelContainer(sharedModelContainer)
         }
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                AboutCommand()
+            }
+        }
+
+        Window("About WakeyThree", id: AboutView.viewID) {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .restorationBehavior(.disabled)
 
         MenuBarExtra("WakeyThree", systemImage: "powersleep") {
             StatusMenuView()

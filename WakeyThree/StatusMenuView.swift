@@ -38,6 +38,10 @@ struct StatusMenuView: View {
         }
 
         Link("Help", destination: WakeyLinks.help)
+        Button("About WakeyThree") {
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: AboutView.viewID)
+        }
         Divider()
         Button("Quit WakeyThree") {
             NSApplication.shared.terminate(nil)

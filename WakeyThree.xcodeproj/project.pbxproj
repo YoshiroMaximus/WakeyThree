@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		032559062FD32EED00B0B599 /* WakeyThree.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyThree.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAAA0000000000000000AA07 /* WakeyThreeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakeyThreeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +17,22 @@
 			path = WakeyThree;
 			sourceTree = "<group>";
 		};
+		AAAA0000000000000000AA03 /* WakeyThreeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WakeyThreeTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		032559032FD32EED00B0B599 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAAA0000000000000000AA0A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				032559082FD32EED00B0B599 /* WakeyThree */,
+				AAAA0000000000000000AA03 /* WakeyThreeTests */,
 				032559072FD32EED00B0B599 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,11 +55,30 @@
 			isa = PBXGroup;
 			children = (
 				032559062FD32EED00B0B599 /* WakeyThree.app */,
+				AAAA0000000000000000AA07 /* WakeyThreeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		AAAA0000000000000000AA09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 032558FE2FD32EED00B0B599 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 032559052FD32EED00B0B599;
+			remoteInfo = WakeyThree;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		AAAA0000000000000000AA08 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 032559052FD32EED00B0B599 /* WakeyThree */;
+			targetProxy = AAAA0000000000000000AA09 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXNativeTarget section */
 		032559052FD32EED00B0B599 /* WakeyThree */ = {
@@ -70,6 +103,29 @@
 			productReference = 032559062FD32EED00B0B599 /* WakeyThree.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AAAA0000000000000000AA01 /* WakeyThreeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AAAA0000000000000000AA04 /* Build configuration list for PBXNativeTarget "WakeyThreeTests" */;
+			buildPhases = (
+				AAAA0000000000000000AA02 /* Sources */,
+				AAAA0000000000000000AA0A /* Frameworks */,
+				AAAA0000000000000000AA0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AAAA0000000000000000AA08 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AAAA0000000000000000AA03 /* WakeyThreeTests */,
+			);
+			name = WakeyThreeTests;
+			packageProductDependencies = (
+			);
+			productName = WakeyThreeTests;
+			productReference = AAAA0000000000000000AA07 /* WakeyThreeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +138,10 @@
 				TargetAttributes = {
 					032559052FD32EED00B0B599 = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					AAAA0000000000000000AA01 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 032559052FD32EED00B0B599;
 					};
 				};
 			};
@@ -100,6 +160,7 @@
 			projectRoot = "";
 			targets = (
 				032559052FD32EED00B0B599 /* WakeyThree */,
+				AAAA0000000000000000AA01 /* WakeyThreeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -112,10 +173,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAAA0000000000000000AA0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		032559022FD32EED00B0B599 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAAA0000000000000000AA02 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -327,6 +402,44 @@
 			};
 			name = Release;
 		};
+		AAAA0000000000000000AA05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yoshiro.WakeyThreeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WakeyThree.app/Contents/MacOS/WakeyThree";
+			};
+			name = Debug;
+		};
+		AAAA0000000000000000AA06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yoshiro.WakeyThreeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/WakeyThree.app/Contents/MacOS/WakeyThree";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -344,6 +457,15 @@
 			buildConfigurations = (
 				032559122FD32EEE00B0B599 /* Debug */,
 				032559132FD32EEE00B0B599 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AAAA0000000000000000AA04 /* Build configuration list for PBXNativeTarget "WakeyThreeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAAA0000000000000000AA05 /* Debug */,
+				AAAA0000000000000000AA06 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

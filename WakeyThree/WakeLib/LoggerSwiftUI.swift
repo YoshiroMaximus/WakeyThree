@@ -6,20 +6,19 @@
 //
 
 import Foundation
-import Combine
+import Observation
 
-/// Helper class to get Logger to conform to ObservableObject for SwiftUI
-/// For debug views.
+/// Bridges the SDK `Logger` into an observable type SwiftUI debug views can read.
 @MainActor
-public final class LoggerSwiftUI: ObservableObject, LogDestination {
+@Observable
+public final class LoggerSwiftUI: LogDestination {
 
-    // ideally, this would be readonly, but I can't seem to get that to work
-    @Published public var text: String = ""
+    public private(set) var text: String = ""
 
     // line limit, makes it easier to read than a character limit
     // this version trades data duplication for simplicity
-    public var maxLines = 10
-    private var textLines: [String] = []
+    @ObservationIgnored public var maxLines = 10
+    @ObservationIgnored private var textLines: [String] = []
 
     public init() {
         Logger.shared.destination = self

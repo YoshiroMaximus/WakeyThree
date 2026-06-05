@@ -15,7 +15,7 @@ struct PhoneView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Server.lastUsed, order: .reverse) private var servers: [Server]
 
-    @StateObject private var logWrapper = LoggerSwiftUI()
+    @State private var logWrapper = LoggerSwiftUI()
 
     @State private var editorRoute: ServerEditorRoute?
     @State private var showingLog = false
@@ -151,7 +151,7 @@ private struct WakeToast: View {
 
 /// A simple read-only log viewer presented as a sheet.
 private struct LogSheet: View {
-    @ObservedObject var logWrapper: LoggerSwiftUI
+    var logWrapper: LoggerSwiftUI
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

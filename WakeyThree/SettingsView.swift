@@ -14,7 +14,7 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Server.lastUsed, order: .reverse) private var servers: [Server]
 
-    @StateObject private var logWrapper = LoggerSwiftUI()
+    @State private var logWrapper = LoggerSwiftUI()
 
     @State private var editorRoute: ServerEditorRoute?
 
@@ -115,7 +115,7 @@ private struct ServerRow: View {
 
 /// A small log viewer tucked behind a popover so it stays out of the way.
 private struct LogPopover: View {
-    @ObservedObject var logWrapper: LoggerSwiftUI
+    var logWrapper: LoggerSwiftUI
     @State private var isPresented = false
 
     var body: some View {

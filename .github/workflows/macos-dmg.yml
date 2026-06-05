@@ -61,10 +61,18 @@ jobs:
           fi
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Ad-hoc sign the .app
-        # Self-sign so the bundle has a stable signature; this is NOT a
+      - name: Ad-hoc sign the .app (with entitlements)
+        # Self-sign so the bundle has a stable signature. We MUST pass
+        # --entitlements: the build step disables signing, so without this the
+        # app ships unsandboxed and behaves differently from the Xcode build
+        # (e.g. reads a different SwiftData store location). This is NOT a
         # Developer ID signature, so users still bypass Gatekeeper once.
-        run: codesign --force --deep --sign - "${{ steps.findapp.outputs.app_path }}"
+        run: |
+          codesign --force --deep --sign - \
+            --entitlements WakeyThree/WakeyThree.entitlements \
+            "${{ steps.findapp.outputs.app_path }}"
+          echo "=== entitlements embedded: ==="
+          codesign -d --entitlements - "${{ steps.findapp.outputs.app_path }}" || true
 
       - name: Create DMG
         id: dmg

@@ -16,7 +16,10 @@ struct StatusMenuView: View {
 
         ForEach(servers) { server in
             Button {
-                WakeOnLAN.wakeServer(server)
+                Task {
+                    let result = await WakeOnLAN.wakeServer(server)
+                    WakeNotifier.report(result, serverName: server.name)
+                }
             } label: {
                 HStack {
                     Text("\(server.name)")

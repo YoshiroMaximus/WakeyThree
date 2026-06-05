@@ -17,7 +17,7 @@ env:
 
 jobs:
   build:
-    runs-on: macos-15   # provides recent Xcode toolchains
+    runs-on: macos-26   # required for Xcode 26 AssetCatalog tooling compatibility
     env:
       SCHEME: WakeyThree
       APP_NAME: WakeyThree

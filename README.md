@@ -1,7 +1,5 @@
 <div align="center">
 
-# WakeyThree
-
 **Wake your servers with one click.**
 
 [![CI](https://github.com/YoshiroMaximus/WakeyThree/actions/workflows/ci.yml/badge.svg)](https://github.com/YoshiroMaximus/WakeyThree/actions/workflows/ci.yml)

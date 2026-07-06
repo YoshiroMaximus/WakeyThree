@@ -100,7 +100,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.dmg.outputs.dmg_path }}
-          generate_release_notes: true
           body: |
-            Unsigned build. On first launch, right-click the app in
-            /Applications and choose **Open**, then confirm.
+            WakeyThree ${{ github.ref_name }}
+
+            Download the DMG below, drag the app to /Applications.
+            Unsigned build: on first launch, right-click the app and
+            choose **Open**, then confirm.

@@ -1,0 +1,46 @@
+name: CI
+
+# Build and run unit tests on every push and pull request.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Run JS-based actions on Node.js 24 (Node 20 is deprecated; removed Sept 16, 2026).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26   # required for Xcode 26 AssetCatalog tooling compatibility
+    env:
+      SCHEME: WakeyThree
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 26+
+        run: |
+          set -euo pipefail
+          XC="$(ls -d /Applications/Xcode_26* 2>/dev/null | sort -V | tail -1)"
+          if [ -z "${XC:-}" ]; then
+            echo "::error::No Xcode 26 on this runner image. Bump runs-on (e.g. macos-26) or wait for the image to ship it."
+            exit 1
+          fi
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Build and test
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project WakeyThree.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            test

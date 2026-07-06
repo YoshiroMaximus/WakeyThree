@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # full history + tags, needed to build the changelog
 
       - name: Select Xcode 26+
         run: |
@@ -95,14 +97,33 @@ jobs:
           name: ${{ env.APP_NAME }}-dmg
           path: ${{ steps.dmg.outputs.dmg_path }}
 
+      - name: Write release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+          {
+            echo "## WakeyThree ${TAG}"
+            echo
+            echo "### What's changed"
+            if [ -n "$PREV" ]; then
+              git log --format='- %s' "${PREV}..${TAG}"
+              echo
+              echo "**Full changelog:** [${PREV}...${TAG}](https://github.com/${GITHUB_REPOSITORY}/compare/${PREV}...${TAG})"
+            else
+              git log --format='- %s' "${TAG}"
+            fi
+            echo
+            echo "### Install"
+            echo "Download the DMG below and drag the app to /Applications."
+            echo "Unsigned build: on first launch, right-click the app and choose **Open**, then confirm."
+          } > release-notes.md
+          cat release-notes.md
+
       - name: Attach DMG to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.dmg.outputs.dmg_path }}
-          body: |
-            WakeyThree ${{ github.ref_name }}
-
-            Download the DMG below, drag the app to /Applications.
-            Unsigned build: on first launch, right-click the app and
-            choose **Open**, then confirm.
+          body_path: release-notes.md
